@@ -14,33 +14,26 @@
   user-select: none;
   -webkit-touch-callout: none;
 }
-body {
+html, body {
+  width: 100%;
+  min-height: 100%;
   background: #080b12;
   color: #e2e8f0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  overflow: hidden;
-  touch-action: none;
 }
 .bb-wrap {
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   margin: 0 auto;
-  padding: 8px 10px;
-  display: flex;
-  flex-direction: column;
-  height: 100vh;
+  padding: 10px 8px;
+  display: block;
 }
 .bb-card {
-  background: rgba(15, 23, 42, 0.75);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(0, 243, 255, 0.25);
   border-radius: 16px;
-  display: flex;
-  flex-direction: column;
-  flex: 1;
   overflow: hidden;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 0 15px rgba(0, 243, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
 }
 .bb-header {
   padding: 10px 14px;
@@ -48,32 +41,25 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: rgba(0, 0, 0, 0.2);
+  background: rgba(0, 0, 0, 0.25);
 }
 .bb-sub {
-  font-size: 9px;
+  font-size: 10px;
   letter-spacing: 1.5px;
   color: #00f3ff;
   font-weight: 800;
   text-transform: uppercase;
 }
 .bb-title {
-  font-size: 17px;
+  font-size: 18px;
   font-weight: 900;
   color: #fff;
-  letter-spacing: 0.5px;
-}
-.bb-stats {
-  display: flex;
-  align-items: center;
-  gap: 12px;
 }
 .bb-score {
-  font-size: 19px;
+  font-size: 20px;
   font-weight: 900;
   color: #00f3ff;
   text-align: right;
-  font-variant-numeric: tabular-nums;
 }
 .bb-best {
   font-size: 9px;
@@ -82,17 +68,19 @@ body {
   text-align: right;
 }
 .bb-body {
-  flex: 1;
+  padding: 8px;
   position: relative;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  padding: 6px;
+  text-align: center;
 }
 canvas#game {
   width: 100%;
-  height: 100%;
+  max-width: 400px;
+  height: auto;
+  aspect-ratio: 400 / 530;
   display: block;
+  margin: 0 auto;
+  background: #0d1322;
+  border-radius: 12px;
   touch-action: none;
 }
 </style>
@@ -106,15 +94,13 @@ canvas#game {
         <div class="bb-sub">SIX CORE</div>
         <div class="bb-title">Block Blast</div>
       </div>
-      <div class="bb-stats">
-        <div>
-          <div id="score" class="bb-score">0</div>
-          <div id="best" class="bb-best">BEST 0</div>
-        </div>
+      <div>
+        <div id="score" class="bb-score">0</div>
+        <div id="best" class="bb-best">BEST 0</div>
       </div>
     </div>
     <div class="bb-body">
-      <canvas id="game" width="480" height="640"></canvas>
+      <canvas id="game" width="400" height="530"></canvas>
     </div>
   </div>
 </div>
@@ -127,45 +113,40 @@ canvas#game {
   const bestEl = document.getElementById('best');
 
   const GRID_SIZE = 8;
-  const CELL_SIZE = 48;
+  const CELL_SIZE = 40;
   const CELL_GAP = 4;
   const BOARD_PX = (GRID_SIZE * CELL_SIZE) + ((GRID_SIZE - 1) * CELL_GAP);
-  const BOARD_X = (canvas.width - BOARD_PX) / 2;
-  const BOARD_Y = 24;
+  const BOARD_X = Math.floor((canvas.width - BOARD_PX) / 2);
+  const BOARD_Y = 16;
 
-  const TRAY_Y = 530;
+  const TRAY_Y = 440;
   const TRAY_SLOTS = [
-    { x: 80, y: TRAY_Y },
-    { x: 240, y: TRAY_Y },
-    { x: 400, y: TRAY_Y }
+    { x: 65, y: TRAY_Y },
+    { x: 200, y: TRAY_Y },
+    { x: 335, y: TRAY_Y }
   ];
 
   let audioCtx = null;
-  function initAudio() {
-    if (!audioCtx) {
-      const AC = window.AudioContext || window.webkitAudioContext;
-      if (AC) audioCtx = new AC();
-    }
-    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
-  }
-
-  function playTone(freq, type, duration, ramp) {
-    initAudio();
-    if (!audioCtx) return;
+  function playTone(freq, duration) {
     try {
+      if (!audioCtx) {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (AC) audioCtx = new AC();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume();
+      if (!audioCtx) return;
       const now = audioCtx.currentTime;
       const osc = audioCtx.createOscillator();
       const gain = audioCtx.createGain();
-      osc.type = type;
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(freq, now);
-      if (ramp) osc.frequency.exponentialRampToValueAtTime(ramp, now + duration);
-      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.setValueAtTime(0.15, now);
       gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
       osc.connect(gain);
       gain.connect(audioCtx.destination);
       osc.start(now);
       osc.stop(now + duration);
-    } catch(e){}
+    } catch(e) {}
   }
 
   const PIECES = [
@@ -175,7 +156,7 @@ canvas#game {
     { shape: [[1, 1, 1]], color: '#818cf8' },
     { shape: [[1], [1], [1]], color: '#818cf8' },
     { shape: [[1, 1, 1, 1]], color: '#c084fc' },
-    { shape: [[1], [1], [1], [1]], color: '#c084fc' },
+    { shape: [[1], [1], [1]], color: '#c084fc' },
     { shape: [[1, 1], [1, 1]], color: '#facc15' },
     { shape: [[1, 0], [1, 1]], color: '#4ade80' },
     { shape: [[0, 1], [1, 1]], color: '#4ade80' },
@@ -193,22 +174,18 @@ canvas#game {
   let dragX = 0, dragY = 0;
   let isDragging = false;
   let shake = 0;
-  let particles = [];
-  let floatingTexts = [];
-  let clearingEffects = [];
+  let clearing = [];
   let gameOver = false;
 
   try {
-    bestScore = parseInt(localStorage.getItem('bb_mini_best') || '0', 10);
-  } catch(e){}
+    bestScore = parseInt(localStorage.getItem('bb_best_val') || '0', 10);
+  } catch(e) {}
 
   function resetGame() {
     grid = Array(GRID_SIZE).fill(null).map(() => Array(GRID_SIZE).fill(null));
     tray = [null, null, null];
     score = 0;
-    particles = [];
-    floatingTexts = [];
-    clearingEffects = [];
+    clearing = [];
     shake = 0;
     gameOver = false;
     spawnTray();
@@ -263,40 +240,23 @@ canvas#game {
     return false;
   }
 
-  function addBurst(x, y, color) {
-    for (let i = 0; i < 6; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = Math.random() * 4 + 1.5;
-      particles.push({
-        x: x, y: y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 1.0,
-        color: color
-      });
-    }
-  }
-
   function placeCurrentPiece(index, targetRow, targetCol) {
     const piece = tray[index];
     const h = piece.shape.length;
     const w = piece.shape[0].length;
-    let placedCount = 0;
+    let count = 0;
 
     for (let r = 0; r < h; r++) {
       for (let c = 0; c < w; c++) {
         if (piece.shape[r][c] === 1) {
           grid[targetRow + r][targetCol + c] = piece.color;
-          placedCount++;
-          const cx = BOARD_X + (targetCol + c) * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2;
-          const cy = BOARD_Y + (targetRow + r) * (CELL_SIZE + CELL_GAP) + CELL_SIZE / 2;
-          addBurst(cx, cy, piece.color);
+          count++;
         }
       }
     }
 
-    playTone(480, 'sine', 0.08, 620);
-    score += placedCount * 10;
+    playTone(440, 0.08);
+    score += count * 10;
     tray[index] = null;
 
     let fullRows = [];
@@ -305,49 +265,37 @@ canvas#game {
     for (let r = 0; r < GRID_SIZE; r++) {
       if (grid[r].every(v => v !== null)) fullRows.push(r);
     }
-
     for (let c = 0; c < GRID_SIZE; c++) {
-      let isColFull = true;
+      let isFull = true;
       for (let r = 0; r < GRID_SIZE; r++) {
-        if (grid[r][c] === null) { isColFull = false; break; }
+        if (grid[r][c] === null) { isFull = false; break; }
       }
-      if (isColFull) fullCols.push(c);
+      if (isFull) fullCols.push(c);
     }
 
     const lines = fullRows.length + fullCols.length;
     if (lines > 0) {
       shake = 8;
-      playTone(600, 'triangle', 0.2, 950);
-
+      playTone(660, 0.18);
       fullRows.forEach(r => {
         for (let c = 0; c < GRID_SIZE; c++) {
-          clearingEffects.push({ r, c, alpha: 1.0, color: grid[r][c] });
+          clearing.push({ r, c, a: 1.0, color: grid[r][c] });
           grid[r][c] = null;
         }
       });
-
       fullCols.forEach(c => {
         for (let r = 0; r < GRID_SIZE; r++) {
-          clearingEffects.push({ r, c, alpha: 1.0, color: grid[r][c] });
+          clearing.push({ r, c, a: 1.0, color: grid[r][c] });
           grid[r][c] = null;
         }
       });
-
-      const bonus = lines * 150;
-      score += bonus;
-      floatingTexts.push({
-        text: '+' + bonus,
-        x: BOARD_X + BOARD_PX / 2,
-        y: BOARD_Y + BOARD_PX / 2,
-        life: 1.0
-      });
+      score += lines * 120;
     }
 
     if (score > bestScore) {
       bestScore = score;
-      try { localStorage.setItem('bb_mini_best', String(bestScore)); } catch(e){}
+      try { localStorage.setItem('bb_best_val', String(bestScore)); } catch(e) {}
     }
-
     updateUI();
 
     if (tray.every(t => t === null)) {
@@ -356,18 +304,18 @@ canvas#game {
 
     if (!checkCanMove()) {
       gameOver = true;
-      playTone(220, 'sawtooth', 0.35, 80);
+      playTone(180, 0.3);
     }
   }
 
-  function getCanvasCoords(e) {
+  function getCoords(e) {
     const rect = canvas.getBoundingClientRect();
     const scaleX = canvas.width / rect.width;
     const scaleY = canvas.height / rect.height;
-    const touch = e.touches ? e.touches[0] : e;
+    const t = e.touches ? e.touches[0] : e;
     return {
-      x: (touch.clientX - rect.left) * scaleX,
-      y: (touch.clientY - rect.top) * scaleY
+      x: (t.clientX - rect.left) * scaleX,
+      y: (t.clientY - rect.top) * scaleY
     };
   }
 
@@ -391,14 +339,8 @@ canvas#game {
             ctx.strokeRect(x, y, size, size);
           } else {
             ctx.fillStyle = piece.color;
-            ctx.shadowColor = piece.color;
-            ctx.shadowBlur = 6;
-            ctx.beginPath();
-            if (ctx.roundRect) ctx.roundRect(x, y, size, size, 4);
-            else ctx.rect(x, y, size, size);
-            ctx.fill();
-
-            ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
+            ctx.fillRect(x, y, size, size);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.3)';
             ctx.fillRect(x + 2, y + 2, size - 4, (size - 4) * 0.3);
           }
         }
@@ -407,63 +349,47 @@ canvas#game {
     ctx.restore();
   }
 
-  function render() {
+  function draw() {
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     ctx.save();
     if (shake > 0) {
       ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
-      shake *= 0.88;
+      shake *= 0.85;
       if (shake < 0.2) shake = 0;
     }
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(BOARD_X - 8, BOARD_Y - 8, BOARD_PX + 16, BOARD_PX + 16, 12);
-    else ctx.rect(BOARD_X - 8, BOARD_Y - 8, BOARD_PX + 16, BOARD_PX + 16);
-    ctx.fill();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
+    ctx.fillRect(BOARD_X - 6, BOARD_Y - 6, BOARD_PX + 12, BOARD_PX + 12);
 
     for (let r = 0; r < GRID_SIZE; r++) {
       for (let c = 0; c < GRID_SIZE; c++) {
         const x = BOARD_X + c * (CELL_SIZE + CELL_GAP);
         const y = BOARD_Y + r * (CELL_SIZE + CELL_GAP);
 
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.04)';
-        ctx.beginPath();
-        if (ctx.roundRect) ctx.roundRect(x, y, CELL_SIZE, CELL_SIZE, 6);
-        else ctx.rect(x, y, CELL_SIZE, CELL_SIZE);
-        ctx.fill();
+        ctx.fillStyle = 'rgba(255, 255, 255, 0.05)';
+        ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
 
         if (grid[r][c] !== null) {
-          ctx.save();
           ctx.fillStyle = grid[r][c];
-          ctx.shadowColor = grid[r][c];
-          ctx.shadowBlur = 8;
-          ctx.beginPath();
-          if (ctx.roundRect) ctx.roundRect(x, y, CELL_SIZE, CELL_SIZE, 6);
-          else ctx.rect(x, y, CELL_SIZE, CELL_SIZE);
-          ctx.fill();
-
+          ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
           ctx.fillStyle = 'rgba(255, 255, 255, 0.25)';
-          ctx.fillRect(x + 3, y + 3, CELL_SIZE - 6, (CELL_SIZE - 6) * 0.3);
-          ctx.restore();
+          ctx.fillRect(x + 2, y + 2, CELL_SIZE - 4, (CELL_SIZE - 4) * 0.3);
         }
       }
     }
 
-    clearingEffects.forEach(effect => {
-      const x = BOARD_X + effect.c * (CELL_SIZE + CELL_GAP);
-      const y = BOARD_Y + effect.r * (CELL_SIZE + CELL_GAP);
+    clearing.forEach(ef => {
+      const x = BOARD_X + ef.c * (CELL_SIZE + CELL_GAP);
+      const y = BOARD_Y + ef.r * (CELL_SIZE + CELL_GAP);
       ctx.save();
-      ctx.globalAlpha = effect.alpha;
-      ctx.fillStyle = '#fff';
-      ctx.shadowColor = effect.color;
-      ctx.shadowBlur = 12;
+      ctx.globalAlpha = ef.a;
+      ctx.fillStyle = '#ffffff';
       ctx.fillRect(x, y, CELL_SIZE, CELL_SIZE);
       ctx.restore();
-      effect.alpha -= 0.08;
+      ef.a -= 0.1;
     });
-    clearingEffects = clearingEffects.filter(e => e.alpha > 0);
+    clearing = clearing.filter(ef => ef.a > 0);
 
     if (isDragging && draggedIdx !== -1 && tray[draggedIdx]) {
       const piece = tray[draggedIdx];
@@ -473,7 +399,7 @@ canvas#game {
       const piecePxH = ph * CELL_SIZE + (ph - 1) * CELL_GAP;
 
       const targetX = dragX - piecePxW / 2;
-      const targetY = dragY - 80 - piecePxH / 2;
+      const targetY = dragY - 60 - piecePxH / 2;
 
       const col = Math.round((targetX - BOARD_X) / (CELL_SIZE + CELL_GAP));
       const row = Math.round((targetY - BOARD_Y) / (CELL_SIZE + CELL_GAP));
@@ -488,11 +414,8 @@ canvas#game {
       drawPiece(piece, targetX, targetY, 1.0, false, true);
     }
 
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.5)';
-    ctx.beginPath();
-    if (ctx.roundRect) ctx.roundRect(BOARD_X - 8, TRAY_Y - 45, BOARD_PX + 16, 120, 14);
-    else ctx.rect(BOARD_X - 8, TRAY_Y - 45, BOARD_PX + 16, 120);
-    ctx.fill();
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.6)';
+    ctx.fillRect(BOARD_X - 6, TRAY_Y - 40, BOARD_PX + 12, 100);
 
     for (let i = 0; i < 3; i++) {
       if (tray[i] && i !== draggedIdx) {
@@ -504,62 +427,34 @@ canvas#game {
       }
     }
 
-    particles.forEach(p => {
-      ctx.save();
-      ctx.globalAlpha = p.life;
-      ctx.fillStyle = p.color;
-      ctx.fillRect(p.x, p.y, 3, 3);
-      ctx.restore();
-      p.x += p.vx;
-      p.y += p.vy;
-      p.life -= 0.04;
-    });
-    particles = particles.filter(p => p.life > 0);
-
-    floatingTexts.forEach(t => {
-      ctx.save();
-      ctx.globalAlpha = t.life;
-      ctx.fillStyle = '#00f3ff';
-      ctx.font = '900 24px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.fillText(t.text, t.x, t.y);
-      ctx.restore();
-      t.y -= 1.2;
-      t.life -= 0.03;
-    });
-    floatingTexts = floatingTexts.filter(t => t.life > 0);
-
     ctx.restore();
 
     if (gameOver) {
       ctx.fillStyle = 'rgba(6, 9, 17, 0.85)';
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-
       ctx.fillStyle = '#ef4444';
-      ctx.font = '900 32px sans-serif';
+      ctx.font = '900 28px sans-serif';
       ctx.textAlign = 'center';
-      ctx.fillText('GAME OVER', canvas.width / 2, canvas.height / 2 - 20);
-
+      ctx.fillText('NO MORE MOVES!', canvas.width / 2, canvas.height / 2 - 15);
       ctx.fillStyle = '#00f3ff';
-      ctx.font = '700 16px sans-serif';
-      ctx.fillText('Tap untuk bermain lagi', canvas.width / 2, canvas.height / 2 + 25);
+      ctx.font = '700 15px sans-serif';
+      ctx.fillText('Tap untuk main lagi', canvas.width / 2, canvas.height / 2 + 25);
     }
 
-    requestAnimationFrame(render);
+    requestAnimationFrame(draw);
   }
 
   function handleStart(e) {
-    initAudio();
     if (gameOver) {
       resetGame();
       return;
     }
-    const pos = getCanvasCoords(e);
+    const pos = getCoords(e);
     for (let i = 0; i < 3; i++) {
       if (tray[i]) {
         const dx = Math.abs(pos.x - TRAY_SLOTS[i].x);
         const dy = Math.abs(pos.y - TRAY_SLOTS[i].y);
-        if (dx < 50 && dy < 50) {
+        if (dx < 45 && dy < 45) {
           isDragging = true;
           draggedIdx = i;
           dragX = pos.x;
@@ -572,7 +467,7 @@ canvas#game {
 
   function handleMove(e) {
     if (!isDragging) return;
-    const pos = getCanvasCoords(e);
+    const pos = getCoords(e);
     dragX = pos.x;
     dragY = pos.y;
   }
@@ -587,7 +482,7 @@ canvas#game {
       const piecePxH = ph * CELL_SIZE + (ph - 1) * CELL_GAP;
 
       const targetX = dragX - piecePxW / 2;
-      const targetY = dragY - 80 - piecePxH / 2;
+      const targetY = dragY - 60 - piecePxH / 2;
 
       const col = Math.round((targetX - BOARD_X) / (CELL_SIZE + CELL_GAP));
       const row = Math.round((targetY - BOARD_Y) / (CELL_SIZE + CELL_GAP));
@@ -609,7 +504,7 @@ canvas#game {
   window.addEventListener('mouseup', handleEnd);
 
   resetGame();
-  requestAnimationFrame(render);
+  requestAnimationFrame(draw);
 })();
 </script>
 </body>
